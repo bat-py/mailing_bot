@@ -19,7 +19,7 @@ async def send_message(message: types.Message):
     button2 = aiogram.types.reply_keyboard.KeyboardButton('2 bot')
     buttons = aiogram.types.reply_keyboard.ReplyKeyboardMarkup(keyboard=[[button1, button2]], resize_keyboard=True)
 
-    await message.reply("Choise your bot", reply_markup=buttons)
+    await message.answer("Choise your bot", reply_markup=buttons)
 
 
 @dp.message_handler(lambda message: message.text == 'tilla')
