@@ -59,5 +59,10 @@ async def send_message(message: types.Message):
     await message.answer('Choose command', reply_markup=buttons)
 
 
+@dp.message_handler(lambda message: message.text == 'Groups list')
+async def send_message(message: types.Message):
+
+
+
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
