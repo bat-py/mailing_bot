@@ -84,7 +84,34 @@ def get_timetable_list():
     timetable_list = []
 
     for i in timetable_dict:
-        button = [[i['timetable_name'], 'timetable_id'+i['timetable_id']]]
+        button = [[i['timetable_name'], 'timetable_id' + i['timetable_id']]]
         timetable_list.append(button)
 
     return timetable_list
+
+
+def get_groups_list():
+    """
+    Returns:
+        Вернет готовый список чтобы создать кнопки : [ [ [ title , 'group_id'+chat_id ] ], []... ]
+    """
+
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM `groups`;")
+    groups_dict = cursor.fetchall()
+
+    connection.close()
+
+    # Преобразуем groups_dict на нужный формат чтобы создать кнопки
+    groups_list = []
+
+    for group in groups_dict:
+        chat_id = 'group_id'+group['chat_id']
+        title = group['title']
+
+        row = [[title, chat_id]]
+        groups_list.append(row)
+
+    return groups_list
