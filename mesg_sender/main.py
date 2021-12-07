@@ -13,19 +13,15 @@ def mysql_handler():
         # cursorclass=DictCursor
     )
 
-    cursor = connection.cursor()
 
-    # Messages list (gets tuple like: (('Hello world!',),)
-    cursor.execute("SELECT * FROM messages")
-    messages_list = cursor.fetchall()
+
+    cursor = connection.cursor()
 
     # Groups list (gets tuple like (('crow_test',), ('second_group',), ...)
     cursor.execute("SELECT * FROM `groups`;")
-    groups_list = cursor.fetchall()
 
-    connection.close()
+    groups_dict = cursor.fetchall()
 
-    return messages_list, groups_list
 
 
 def message_sender(messages, groups_list):

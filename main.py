@@ -1,31 +1,44 @@
 import logging
-
 import aiogram.types.reply_keyboard
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-API_TOKEN = '1018761895:AAE9zGMHZxYZlC_6kyRLAmTBC0Oubpp-QUQ'
+import sql_handler
+import admin_panel
+
+API_TOKEN = '5073184755:AAFXBB0aNhKDlCCppiLxIwgL7mGyRAyfyZY'
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Initialize bot and dispatcher
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_message(message: types.Message):
-    button1 = aiogram.types.reply_keyboard.KeyboardButton('1 bot')
-    button2 = aiogram.types.reply_keyboard.KeyboardButton('2 bot')
-    buttons = aiogram.types.reply_keyboard.ReplyKeyboardMarkup(keyboard=[[button1, button2]], resize_keyboard=True)
+    if message.chat.type == 'group' or message.chat.type == 'supergroup':
+        chats_list = sql_handler.get_chats_id_list()
 
-    await message.answer("Choise your bot", reply_markup=buttons)
+        # Если ид группы не найдено из базы тогда он добавит его в таблицу 'groups'
+        if message.chat.id not in chats_list:
+            sql_handler.add_new_chat(message)
+            await message.answer('Your group added :)')
 
 
-@dp.message_handler(lambda message: message.text == 'tilla')
+@dp.message_handler(commands=['asssss'])
 async def send_message(message: types.Message):
-    await message.answer('Mirkosh chumo')
+    await message.answer(message)
+
+
+@dp.message_handler(commands=['test'])
+async def send_info(message: types.Message):
+    await message.answer(message)
 
 
 if __name__ == '__main__':
+    admin_panel.register_handlers_admin_panel(dp)
+
     executor.start_polling(dp, skip_updates=True)
