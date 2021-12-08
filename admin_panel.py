@@ -4,10 +4,12 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 import sql_handler
 import button_creator
 
+
 class MyStates(StatesGroup):
     waiting_for_password = State()
     waiting_for_new_timetable_name = State()
     waiting_for_groups = State()
+    waiting_for_hours = State()
 
 
 async def admin_panel(message: types.Message, state: FSMContext):
@@ -57,7 +59,6 @@ async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSM
 
     mesg = 'Список расписаний:'
     inline_buttons = button_creator.inline_keyboard_creator(timetable_list)
-
 
     await callback_query.bot.send_message(
         callback_query.from_user.id,
@@ -119,6 +120,41 @@ async def timetable_name_chosen(message: types.Message, state: FSMContext):
     )
 
 
+# Choise groups menu system:
+async def groups_list_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Функция запускают 2 функции: one_group_chosen и cancel_chosen_group
+    """
+    all_data = await state.get_data()
+    all_chosen_groups = all_data['chosen_groups']
+
+    # Получает список всех групп куда добавлен бот: [ [ [ title , 'group_id'+chat_id ] ], []... ]
+    buttons_list = sql_handler.get_groups_list()
+    # Здесь хранится новые inline кнопки где показано выбранные до этого группы
+    new_buttons_list = []
+
+    for group in buttons_list:
+        if group[0][1].replace('group_id', '') in all_chosen_groups:
+            chosen_button_name = group[0][0] + ' ✅'
+            chosen_button_callback_data = group[0][1].replace('group_id', 'chosen_group_id')
+            chosen_button = [[chosen_button_name, chosen_button_callback_data]]
+
+            new_buttons_list.append(chosen_button)
+        else:
+            new_buttons_list.append(group)
+
+    # Создаем кнопки на основе new_buttons_list
+    new_buttons_list_with_next_button = new_buttons_list.append([['Дальше', 'all_groups_chosen']])
+    ready_buttons = button_creator.inline_keyboard_creator(new_buttons_list_with_next_button)
+
+    # Меняем inline кнопку (появится галочка после выбора группы)
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id,
+        reply_markup=ready_buttons
+    )
+
+
 async def one_group_chosen(callback_query: types.CallbackQuery, state: FSMContext):
     chosen_group_id = callback_query.data.replace('group_id', '')
 
@@ -133,30 +169,28 @@ async def one_group_chosen(callback_query: types.CallbackQuery, state: FSMContex
         all_chosen_groups.append(chosen_group_id)
         await state.update_data(chosen_groups=all_chosen_groups)
 
-    # Получает список всех групп куда добавлен бот: [ [ [ title , 'group_id'+chat_id ] ], []... ]
-    buttons_list = sql_handler.get_groups_list()
-    # Здесь хранится новые inline кнопки где показано выбранные до этого группы
-    new_buttons_list = []
+    await groups_list_menu(callback_query, state)
 
-    for group in buttons_list:
-        if group[0][1].replace('group_id', '') in all_chosen_groups:
-            chosen_button_name = group[0][0]+' ✅'
-            chosen_button_callback_data = group[0][1].replace('group_id', 'chosen_group_id')
-            chosen_button = [[chosen_button_name, chosen_button_callback_data]]
 
-            new_buttons_list.append(chosen_button)
-        else:
-            new_buttons_list.append(group)
+async def cancel_chosen_group(callback_query: types.CallbackQuery, state: FSMContext):
+    canceled_group_id = callback_query.data.replace('chosen_group_id', '')
+    all_data = await state.get_data()
 
-    # Создаем кнопки на основе new_buttons_list
-    ready_buttons = button_creator.inline_keyboard_creator(new_buttons_list)
+    chosen_groups_list = all_data['chosen_groups']
+    new_chosen_groups_list = [i for i in chosen_groups_list if i != canceled_group_id]
 
-    # Меняем inline кнопку (появится галочка после выбора группы)
-    await callback_query.bot.edit_message_reply_markup(
-        callback_query.message.chat.id,
-        callback_query.message.message_id,
-        reply_markup=ready_buttons
-    )
+    await state.update_data(chosen_groups=new_chosen_groups_list)
+
+    await groups_list_menu(callback_query, state)
+
+
+# Choise hours menu system:
+async def all_groups_chosen(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Запустится если пользователь нажал на кнопку дальше после выбора всех нужных групп
+    """
+    await MyStates.waiting_for_hours.set()
+
 
 
 def register_handlers_admin_panel(dp: Dispatcher):
@@ -194,5 +228,17 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_callback_query_handler(
         one_group_chosen,
         lambda c: c.data.startswith('group_id'),
+        state=MyStates.waiting_for_groups
+    )
+
+    dp.register_callback_query_handler(
+        cancel_chosen_group,
+        lambda c: c.data.startswith('chosen_group_id'),
+        state=MyStates.waiting_for_groups
+    )
+
+    dp.register_callback_query_handler(
+        all_groups_chosen,
+        lambda c: c.data == 'all_groups_chosen',
         state=MyStates.waiting_for_groups
     )
