@@ -10,6 +10,9 @@ class MyStates(StatesGroup):
     waiting_for_new_timetable_name = State()
     waiting_for_groups = State()
     waiting_for_hours = State()
+    waiting_for_mailing_message_text = State()
+    waiting_for_term = State()
+    processing_data = State()
 
 
 async def admin_panel(message: types.Message, state: FSMContext):
@@ -54,6 +57,7 @@ async def password_checker(message: types.Message, state: FSMContext):
     await admin_panel_menu(message, state)
 
 
+# # # Get timetable menu system:
 async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSMContext):
     # Вернет [ [ [button_name, 'button_id1216546'] ], [], [] ]
     timetable_list = sql_handler.get_timetable_list()
@@ -71,7 +75,7 @@ async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSM
 
 async def add_new_timetable_menu(callback_query: types.CallbackQuery, state: FSMContext):
     mesg = 'Введите имя расписания:'
-    button = button_creator.reply_keyboard_creator([['Назад'], ['Главное меню']])
+    button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
 
     # Удаляем inline кнпоки главного меню
     await callback_query.bot.edit_message_reply_markup(
@@ -99,7 +103,6 @@ async def timetable_name_chosen(message: types.Message, state: FSMContext):
 
     """
     if message.text == 'Назад':
-        await state.finish()
         await admin_panel_menu(message, state)
         return
 
@@ -126,7 +129,7 @@ async def timetable_name_chosen(message: types.Message, state: FSMContext):
     )
 
 
-# Choise groups menu system:
+# # # Choise groups menu system:
 async def groups_list_menu(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Функция запускают 2 функции: one_group_chosen и cancel_chosen_group
@@ -226,7 +229,7 @@ async def choise_groups_menu_next_button(callback_query: types.CallbackQuery, st
     )
 
 
-# Choise hours menu system:
+# # # Choise hours menu system:
 async def choise_hours_menu(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Returns:
@@ -302,7 +305,85 @@ async def cancel_chosen_hour(callback_query: types.CallbackQuery, state: FSMCont
 
 
 async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, state: FSMContext):
-    pass
+    all_data = await state.get_data()
+
+    # Если пользователь нажал на кнопку дальше не выбрав время тогда покажем уведомление об этом и остановим функцию
+    if not all_data['chosen_hours']:
+        await callback_query.answer('Пожалуйста выберите какое-то время')
+        return
+
+    # Меняем статус на waiting_for_mailing_text
+    await MyStates.waiting_for_mailing_message_text.set()
+
+    mesg = 'Отравьте текст сообщения рассылки:'
+    reply_buttons_list = [['Назад', 'Главное меню']]
+    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+    await callback_query.bot.send_message(
+        callback_query.message.chat.id,
+        mesg,
+        reply_markup=reply_buttons
+    )
+
+
+# # # Get mailing message text system
+async def mailing_message_text_given(message: types.Message, state: FSMContext):
+    """
+    Запустится после того как пользователь отправил текст сообщения рассылки
+    Returns:
+        Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100):
+    """
+    mailing_message_text = message.text
+
+    # Запищем отправленный текст в переменный mailing_message_text в state
+    await state.update_data(mailing_message_text=mailing_message_text)
+
+    # Меняем статус
+    await MyStates.waiting_for_term.set()
+
+    mesg = 'Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100:'
+    reply_buttons_list = [['Назад', 'Главное меню']]
+    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+
+    await message.answer(mesg, reply_markup=reply_buttons)
+
+
+# # # Get term system
+async def term_given(message: types.Message, state: FSMContext):
+    """
+    Запустится если пользователь указал сколько дней нужно отправлять рассылку
+    Returns:
+    """
+    term = message.text
+
+    if term.isdigit():
+        term = int(term)
+        if 0 < term <= 100:
+            await process_data(message, state)
+        else:
+            mesg = 'Укажите цифру в диапазоне от 1 до 100'
+            await message.answer(mesg)
+            return
+    else:
+        mesg = 'Укажите целое число'
+        await message.answer(mesg)
+        return
+
+
+async def process_data(message: types.Message, state: FSMContext):
+    all_data = await state.get_data()
+
+    timetable_id = sql_handler.timetable_id_generator()
+    timetable_name = all_data['timetable_name']
+    chosen_groups = all_data['chosen_groups']
+    chosen_hours = all_data['chosen_hours']
+    mailing_message_text = all_data['mailing_message_text']
+    term = message.text
+
+    print(timetable_name)
+    print(','.join(chosen_groups))
+    print(','.join(chosen_hours))
+    print(mailing_message_text)
+    print(term)
 
 
 def register_handlers_admin_panel(dp: Dispatcher):
@@ -377,4 +458,14 @@ def register_handlers_admin_panel(dp: Dispatcher):
         choise_hours_menu_next_button,
         lambda c: c.data == 'all_hours_chosen',
         state=MyStates.waiting_for_hours
+    )
+
+    dp.register_message_handler(
+        mailing_message_text_given,
+        state=MyStates.waiting_for_mailing_message_text
+    )
+
+    dp.register_message_handler(
+        term_given,
+        state=MyStates.waiting_for_term
     )

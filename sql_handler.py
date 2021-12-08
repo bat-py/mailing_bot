@@ -1,5 +1,6 @@
 import pymysql
 from pymysql.cursors import DictCursor
+import random
 
 
 def connection_creator():
@@ -115,3 +116,18 @@ def get_groups_list():
         groups_list.append(row)
 
     return groups_list
+
+
+def timetable_id_generator():
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    while True:
+        gen_id = str(random.randint(100000, 999999))
+        cursor.execute("SELECT timetable_id FROM time_table WHERE timetable_id = %s", (gen_id, ))
+        responce = cursor.fetchone()
+
+        if not responce:
+            connection.close()
+            return gen_id
+

@@ -1,7 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 import sql_handler
 
-
 def inline_keyboard_creator(buttons_list, row_width=2):
     """
     Args:
@@ -55,3 +54,5 @@ def hours_buttons_list():
         n += 1
 
     return hours
+
+
