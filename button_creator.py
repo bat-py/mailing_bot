@@ -33,3 +33,25 @@ def reply_keyboard_creator(buttons_list):
         ready_buttons.add(*row)
 
     return ready_buttons
+
+
+def hours_buttons_list():
+    """
+    Returns:
+        [['0:00', '0'], ['23:00', '23']]
+
+    """
+    hours = []
+    n = 0
+    row = []
+
+    for i in range(24):
+        hour = [str(i)+':00', 'hour'+str(i)]
+        row.append(hour)
+
+        if not (n+1)%4:
+            hours.append(row)
+            row = []
+        n += 1
+
+    return hours
