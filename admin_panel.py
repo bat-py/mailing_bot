@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 import sql_handler
 import button_creator
-
+import datetime
 
 class MyStates(StatesGroup):
     waiting_for_password = State()
@@ -374,16 +374,10 @@ async def process_data(message: types.Message, state: FSMContext):
 
     timetable_id = sql_handler.timetable_id_generator()
     timetable_name = all_data['timetable_name']
-    chosen_groups = all_data['chosen_groups']
-    chosen_hours = all_data['chosen_hours']
+    chosen_groups = ','.join(all_data['chosen_groups'])
+    chosen_hours = ','.join(all_data['chosen_hours'])
     mailing_message_text = all_data['mailing_message_text']
-    term = message.text
-
-    print(timetable_name)
-    print(','.join(chosen_groups))
-    print(','.join(chosen_hours))
-    print(mailing_message_text)
-    print(term)
+    term = datetime.date.today() + datetime.timedelta(days=int(message.text))
 
 
 def register_handlers_admin_panel(dp: Dispatcher):
