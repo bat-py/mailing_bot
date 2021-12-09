@@ -523,7 +523,6 @@ async def delete_timetable_menu(callback_query: types.CallbackQuery, state: FSMC
     mesg = 'Выберите расписание который хотите удалить:'
 
     buttons_list = sql_handler.get_timetable_list_for_delete()
-    print(buttons_list)
     ready_buttons = button_creator.inline_keyboard_creator(buttons_list)
 
     await callback_query.bot.send_message(
