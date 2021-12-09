@@ -26,6 +26,10 @@ async def send_message(message: types.Message):
         if message.chat.id not in chats_list:
             sql_handler.add_new_chat(message)
             await message.answer('Your group added :)')
+        else:
+            sql_handler.del_group(message.chat.id)
+            sql_handler.add_new_chat(message)
+            await message.answer('Your group updated :)')
 
 
 @dp.message_handler(commands=['asssss'])

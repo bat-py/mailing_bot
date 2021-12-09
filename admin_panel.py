@@ -1,9 +1,12 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import ReplyKeyboardRemove
+
 import sql_handler
 import button_creator
 import datetime
+import cron_handler
 
 class MyStates(StatesGroup):
     waiting_for_password = State()
@@ -57,14 +60,19 @@ async def password_checker(message: types.Message, state: FSMContext):
     await admin_panel_menu(message, state)
 
 
-# # # Get timetable menu system:
+# # # 1-menu)Timetable list menu
 async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSMContext):
-    # Вернет [ [ [button_name, 'button_id1216546'] ], [], [] ]
+    # Вернет [ [ [button_name, 'timetable_id1216546'] ], [], [] ]
     timetable_list = sql_handler.get_timetable_list()
-    timetable_list.append([['Назад', 'admin_panel_menu']])
 
     mesg = 'Список расписаний:'
     inline_buttons = button_creator.inline_keyboard_creator(timetable_list)
+
+    # Удаляем inline кнопки главного меню
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
 
     await callback_query.bot.send_message(
         callback_query.from_user.id,
@@ -73,14 +81,66 @@ async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSM
     )
 
 
+async def show_info_about_timetable(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Returns:
+        Покажет информацию о выбранном расписании
+    """
+    timetable_id = callback_query.data.replace('timetable_id', '')
+    timetable_info = sql_handler.get_info_about_timetable(timetable_id)
+
+    hours_str = timetable_info['hours']
+    hours_list = hours_str.split(',')
+    hours = ''
+    for i in hours_list:
+        hour = i+':00, '
+        hours += hour
+    hours = hours[:-2]
+
+    full_mailing_text = timetable_info['mailing_text']
+    mailing_text = full_mailing_text[:16]+'...'
+
+    mesg = f"""
+Расписание <b>{timetable_info["timetable_name"]}</b>
+
+Список групп:
+{timetable_info["groups_name_username_list"]}
+
+Время:
+{hours}
+
+Сообщение рассылкы:
+{mailing_text}
+
+Срок:
+{timetable_info['term']}
+"""
+    button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+
+    # Удаляем inline кнопки меню "Список расписаний:"
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    await callback_query.bot.send_message(
+        callback_query.from_user.id,
+        mesg,
+        reply_markup=button,
+        parse_mode='html'
+    )
+
+
+# # # Get timetable name menu:
 async def add_new_timetable_menu(callback_query: types.CallbackQuery, state: FSMContext):
     mesg = 'Введите имя расписания:'
     button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
 
     # Удаляем inline кнпоки главного меню
+    message_id = callback_query.message.message_id
     await callback_query.bot.edit_message_reply_markup(
-        callback_query.message.chat.id,
-        callback_query.message.message_id,
+        callback_query.from_user.id,
+        message_id
     )
 
     await MyStates.waiting_for_new_timetable_name.set()
@@ -102,10 +162,6 @@ async def timetable_name_chosen(message: types.Message, state: FSMContext):
         Функция сохраняет имя расписание и отравит сообщение "Выберите группы:"
 
     """
-    if message.text == 'Назад':
-        await admin_panel_menu(message, state)
-        return
-
     # Changing status to waiting_for_groups
     await MyStates.waiting_for_groups.set()
 
@@ -129,7 +185,11 @@ async def timetable_name_chosen(message: types.Message, state: FSMContext):
     )
 
 
-# # # Choise groups menu system:
+async def timetable_name_menu_back_button(message: types.Message, state: FSMContext):
+    await admin_panel_menu(message, state)
+
+
+# # # 2-menu) Choise groups menu system:
 async def groups_list_menu(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Функция запускают 2 функции: one_group_chosen и cancel_chosen_group
@@ -187,6 +247,21 @@ async def cancel_chosen_group(callback_query: types.CallbackQuery, state: FSMCon
     await state.update_data(chosen_groups=new_chosen_groups_list)
 
     await groups_list_menu(callback_query, state)
+
+
+async def groups_list_menu_back_button(message: types.Message, state: FSMContext):
+    # Онулируем массив chosen_groups возвращаемся назад
+    await state.update_data(chosen_groups=[])
+
+    await MyStates.waiting_for_new_timetable_name.set()
+
+    mesg = 'Введите имя расписания:'
+    button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+
+    await message.answer(
+        mesg,
+        reply_markup=button
+    )
 
 
 async def choise_groups_menu_next_button(callback_query: types.CallbackQuery, state: FSMContext):
@@ -247,7 +322,7 @@ async def choise_hours_menu(callback_query: types.CallbackQuery, state: FSMConte
         new_row = []
         for hour in hour_row:
             if hour[1].replace('hour', '') in chosen_hours:
-                chosen_hour_button_name = hour[0]+' ✅'
+                chosen_hour_button_name = hour[0] + ' ✅'
                 chosen_hour_button_callback_data = hour[1].replace('hour', 'chosen_hour')
                 chosen_hour = [chosen_hour_button_name, chosen_hour_button_callback_data]
                 new_row.append(chosen_hour)
@@ -262,11 +337,21 @@ async def choise_hours_menu(callback_query: types.CallbackQuery, state: FSMConte
     ready_hours_buttons = button_creator.inline_keyboard_creator(ready_hours, row_width=4)
 
     # Изменим уже существующий inline кнопки на основе новых кнопок
-    await callback_query.bot.edit_message_reply_markup(
-        callback_query.message.chat.id,
-        callback_query.message.message_id,
-        reply_markup=ready_hours_buttons
-    )
+    try:
+        await callback_query.bot.edit_message_reply_markup(
+            callback_query.message.chat.id,
+            callback_query.message.message_id,
+            reply_markup=ready_hours_buttons
+        )
+    # Если эту функцию запустил кнопка назад предыдущего меню, тогда запустится эта часть
+    except:
+        mesg = 'Выберите время:'
+
+        await callback_query.bot.send_message(
+            callback_query.chat.id,
+            mesg,
+            reply_markup=ready_hours_buttons
+        )
 
 
 async def one_hour_chosen(callback_query: types.CallbackQuery, state: FSMContext):
@@ -302,6 +387,12 @@ async def cancel_chosen_hour(callback_query: types.CallbackQuery, state: FSMCont
     await state.update_data(chosen_hours=new_chosen_hours)
 
     await choise_hours_menu(callback_query, state)
+
+
+async def choise_hours_menu_back_button(message: types.Message, state: FSMContext):
+    await state.update_data(chosen_hours=[])
+
+    await timetable_name_chosen(message, state)
 
 
 async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, state: FSMContext):
@@ -347,6 +438,13 @@ async def mailing_message_text_given(message: types.Message, state: FSMContext):
     await message.answer(mesg, reply_markup=reply_buttons)
 
 
+async def mailing_message_text_back_button(message: types.Message, state: FSMContext):
+    # Меняем статус на "waiting_for_hours"
+    await MyStates.waiting_for_hours.set()
+
+    await choise_hours_menu(message, state)
+
+
 # # # Get term system
 async def term_given(message: types.Message, state: FSMContext):
     """
@@ -369,17 +467,115 @@ async def term_given(message: types.Message, state: FSMContext):
         return
 
 
+async def term_menu_back_button(message: types.Message, state: FSMContext):
+    await state.update_data(mailing_message_text='')
+
+    # Меняем статус на waiting_for_mailing_text
+    await MyStates.waiting_for_mailing_message_text.set()
+
+    mesg = 'Отравьте текст сообщения рассылки:'
+    reply_buttons_list = [['Назад', 'Главное меню']]
+    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+    await message.answer(
+        mesg,
+        reply_markup=reply_buttons
+    )
+
+
 async def process_data(message: types.Message, state: FSMContext):
     all_data = await state.get_data()
 
-    timetable_id = sql_handler.timetable_id_generator()
-    timetable_name = all_data['timetable_name']
-    chosen_groups = ','.join(all_data['chosen_groups'])
-    chosen_hours = ','.join(all_data['chosen_hours'])
-    mailing_message_text = all_data['mailing_message_text']
-    term = datetime.date.today() + datetime.timedelta(days=int(message.text))
+    ready_data = {
+        'timetable_id': sql_handler.timetable_id_generator(),
+        'timetable_name': all_data['timetable_name'],
+        'chosen_groups': ','.join(all_data['chosen_groups']),
+        'chosen_hours': ','.join(all_data['chosen_hours']),
+        'mailing_message_text': all_data['mailing_message_text'],
+        'term': datetime.date.today() + datetime.timedelta(days=int(message.text))
+    }
+
+    # Закрываем все статусы
+    await state.finish()
+
+    # Записываем полученные данные в базу данных
+    sql_handler.ready_data_handler(ready_data)
+
+    # Записываем на cron
+    cron_handler.new_job_creator(ready_data)
+
+    # Отправим сообщение о том что расписание успешно сохранилась
+    mesg = '✅ Данные сохранены. Можно увидеть подробно в меню "Список расписаний"'
+    button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+
+    await message.answer(mesg, reply_markup=button)
 
 
+# # # 3-menu) Delete timetable
+async def delete_timetable_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    # Удаляем inline кнопки меню главного меню
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    mesg = 'Выберите расписание который хотите удалить:'
+
+    buttons_list = sql_handler.get_timetable_list_for_delete()
+    print(buttons_list)
+    ready_buttons = button_creator.inline_keyboard_creator(buttons_list)
+
+    await callback_query.bot.send_message(
+        callback_query.from_user.id,
+        mesg,
+        reply_markup=ready_buttons
+    )
+
+
+async def confirm_delete_chosen_timetable(callback_query: types.CallbackQuery, state: FSMContext):
+    timetable_id_for_delete = callback_query.data.replace('chosen_timetable_id_for_delete', '')
+
+    # Удаляем inline кнопки меню "Удалить расписание"
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    timetable_title = sql_handler.get_timetable_title(timetable_id_for_delete)
+    mesg = f'Вы выбрали <b>{timetable_title}</b>\nВы действительно хотите удалить расписание?'
+
+    buttons_list = [[['Да', f'yes_delete{timetable_id_for_delete}'], ['Нет', 'back_to_delete_timetable_menu']]]
+    ready_button = button_creator.inline_keyboard_creator(buttons_list)
+
+    await callback_query.bot.send_message(
+        callback_query.from_user.id,
+        mesg,
+        reply_markup=ready_button,
+        parse_mode='html'
+    )
+
+
+async def delete_chosen_timetable(callback_query: types.CallbackQuery, state: FSMContext):
+    timetable_id_for_delete = callback_query.data.replace('yes_delete', '')
+
+    # Удаляем inline кнопки Подтверждения (да нет)
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    # Удаляем из базы
+    sql_handler.delete_timetable(timetable_id_for_delete)
+    # Удаляем из cron
+    cron_handler.job_deletor_by_comment(timetable_id_for_delete)
+
+    # Отправим всплывающее окно
+    await callback_query.answer('Расписание успешно удалено!')
+
+    # Вернем главное меню
+    await admin_panel_menu(callback_query, state)
+
+
+# # #
 def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_message_handler(
         admin_panel,
@@ -404,6 +600,11 @@ def register_handlers_admin_panel(dp: Dispatcher):
     )
 
     dp.register_callback_query_handler(
+        show_info_about_timetable,
+        lambda c: c.data.startswith('timetable_id')
+    )
+
+    dp.register_callback_query_handler(
         admin_panel_menu,
         lambda c: c.data == 'admin_panel_menu'
     )
@@ -411,6 +612,12 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_callback_query_handler(
         add_new_timetable_menu,
         lambda c: c.data == 'add_new_timetable'
+    )
+
+    dp.register_message_handler(
+        timetable_name_menu_back_button,
+        lambda message: message.text == 'Назад',
+        state=MyStates.waiting_for_new_timetable_name
     )
 
     dp.register_message_handler(
@@ -436,6 +643,12 @@ def register_handlers_admin_panel(dp: Dispatcher):
         state=MyStates.waiting_for_groups
     )
 
+    dp.register_message_handler(
+        groups_list_menu_back_button,
+        lambda message: message.text == 'Назад',
+        state=MyStates.waiting_for_groups
+    )
+
     dp.register_callback_query_handler(
         one_hour_chosen,
         lambda c: c.data.startswith('hour'),
@@ -448,10 +661,22 @@ def register_handlers_admin_panel(dp: Dispatcher):
         state=MyStates.waiting_for_hours
     )
 
+    dp.register_message_handler(
+        choise_hours_menu_back_button,
+        lambda message: message.text == 'Назад',
+        state=MyStates.waiting_for_hours
+    )
+
     dp.register_callback_query_handler(
         choise_hours_menu_next_button,
         lambda c: c.data == 'all_hours_chosen',
         state=MyStates.waiting_for_hours
+    )
+
+    dp.register_message_handler(
+        mailing_message_text_back_button,
+        lambda message: message.text == 'Назад',
+        state=MyStates.waiting_for_mailing_message_text
     )
 
     dp.register_message_handler(
@@ -460,6 +685,27 @@ def register_handlers_admin_panel(dp: Dispatcher):
     )
 
     dp.register_message_handler(
+        term_menu_back_button,
+        lambda message: message.text == 'Назад',
+        state=MyStates.waiting_for_term
+    )
+
+    dp.register_message_handler(
         term_given,
         state=MyStates.waiting_for_term
+    )
+
+    dp.register_callback_query_handler(
+        delete_timetable_menu,
+        lambda c: c.data == 'delete_timetable'
+    )
+
+    dp.register_callback_query_handler(
+        confirm_delete_chosen_timetable,
+        lambda c: c.data.startswith('chosen_timetable_id_for_delete')
+    )
+
+    dp.register_callback_query_handler(
+        delete_chosen_timetable,
+        lambda c: c.data.startswith('yes_delete')
     )
