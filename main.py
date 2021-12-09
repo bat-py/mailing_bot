@@ -32,11 +32,10 @@ async def send_message(message: types.Message):
             sql_handler.del_group(message.chat.id)
             sql_handler.add_new_chat(message)
             await message.answer('Your group updated :)')
+    elif message.chat.type == 'private':
+        mesg = sql_handler.get_data_from_data_table('start_button_response_in_private')
 
-
-@dp.message_handler(commands=['asssss'])
-async def send_message(message: types.Message):
-    await message.answer(message)
+        await message.answer(mesg)
 
 
 @dp.message_handler(commands=['test'])

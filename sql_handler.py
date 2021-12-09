@@ -257,3 +257,30 @@ def get_groups_id_mailing_text(timetable_id):
     connection.close()
 
     return groups_id_list, mailing_text
+
+
+def change_password(new_password):
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    cursor.execute("UPDATE data SET value = %s WHERE name = 'password'", (new_password,))
+    connection.commit()
+
+    connection.close()
+
+
+def get_data_from_data_table(name):
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT value FROM data WHERE name = %s", (name,))
+    support_text = cursor.fetchone()
+
+    connection.close()
+
+    if not support_text:
+        support = ''
+    else:
+        support = support_text['value']
+
+    return support

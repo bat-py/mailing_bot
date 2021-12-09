@@ -16,6 +16,8 @@ class MyStates(StatesGroup):
     waiting_for_mailing_message_text = State()
     waiting_for_term = State()
     processing_data = State()
+    waiting_for_new_password = State()
+    settings_menu = State()
 
 
 async def admin_panel(message: types.Message, state: FSMContext):
@@ -93,12 +95,12 @@ async def show_info_about_timetable(callback_query: types.CallbackQuery, state: 
     hours_list = hours_str.split(',')
     hours = ''
     for i in hours_list:
-        hour = i+':00, '
+        hour = i + ':00, '
         hours += hour
     hours = hours[:-2]
 
     full_mailing_text = timetable_info['mailing_text']
-    mailing_text = full_mailing_text[:16]+'...'
+    mailing_text = full_mailing_text[:16] + '...'
 
     mesg = f"""
 Расписание <b>{timetable_info["timetable_name"]}</b>
@@ -575,6 +577,89 @@ async def delete_chosen_timetable(callback_query: types.CallbackQuery, state: FS
     await admin_panel_menu(callback_query, state)
 
 
+# # # Settings menu
+async def settings_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    mesg = 'Настройки:'
+    buttons = [[['Изменить пароль', 'change_password'], ['Связь с разработчиком', 'support']]]
+    ready_buttons = button_creator.inline_keyboard_creator(buttons, row_width=2)
+
+    # Меняем статут на setting_menu чтобы работала кнопка "Назад"
+    await MyStates.settings_menu.set()
+
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    await callback_query.bot.send_message(
+        callback_query.from_user.id,
+        mesg,
+        reply_markup=ready_buttons
+    )
+
+
+async def change_password_button_handler(callback_query: types.CallbackQuery, state: FSMContext):
+    mesg = 'Введите новый пароль:'
+    button = button_creator.reply_keyboard_creator([['Главное меню']])
+
+    await MyStates.waiting_for_new_password.set()
+
+    # Удаляем инлайн кнопки предыдущого меню
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    await callback_query.bot.send_message(
+        callback_query.from_user.id,
+        mesg,
+        reply_markup=button
+    )
+
+
+async def new_password_chosen(message: types.Message, state: FSMContext):
+    new_password = message.text
+
+    if len(new_password) > 32:
+        button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+        mesg = '❌ Слищком длинный пароль! Попробуйте еще раз'
+        await message.answer(mesg, reply_markup=button)
+        return
+    elif len(new_password) < 4:
+        button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+        mesg = '❌ Слищком короткий пароль! Попробуйте еще раз'
+        await message.answer(mesg, reply_markup=button)
+        return
+
+    sql_handler.change_password(new_password)
+
+    # Отключаем статус
+    await state.finish()
+
+    button = button_creator.reply_keyboard_creator([['Главное меню']])
+    mesg = '✅ Пароль успешно изменен'
+    await message.answer(mesg, reply_markup=button)
+
+
+async def support_button_handler(callback_query: types.CallbackQuery, state: FSMContext):
+    # Удаляем инлайн кнопки предыдущого меню
+    await callback_query.bot.edit_message_reply_markup(
+        callback_query.message.chat.id,
+        callback_query.message.message_id
+    )
+
+    await state.finish()
+
+    mesg = sql_handler.get_data_from_data_table('support')
+    button = button_creator.reply_keyboard_creator([['Главное меню']])
+
+    await callback_query.bot.send_message(
+        callback_query.message.chat.id,
+        mesg,
+        reply_markup=button
+    )
+
+
 # # #
 def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_message_handler(
@@ -708,4 +793,32 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_callback_query_handler(
         delete_chosen_timetable,
         lambda c: c.data.startswith('yes_delete')
+    )
+
+    dp.register_callback_query_handler(
+        settings_menu,
+        lambda c: c.data == 'settings'
+    )
+
+    dp.register_message_handler(
+        admin_panel_menu,
+        lambda message: message.text == 'Назад',
+        state=MyStates.settings_menu
+    )
+
+    dp.register_callback_query_handler(
+        change_password_button_handler,
+        lambda c: c.data == 'change_password',
+        state=MyStates.settings_menu
+    )
+
+    dp.register_message_handler(
+        new_password_chosen,
+        state=MyStates.waiting_for_new_password
+    )
+
+    dp.register_callback_query_handler(
+        support_button_handler,
+        lambda c: c.data == 'support',
+        state=MyStates.settings_menu
     )

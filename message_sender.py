@@ -26,8 +26,12 @@ async def main():
     data = sql_handler.get_groups_id_mailing_text(timetable_id)
 
     for group_id in data[0]:
-        await bot.send_message(group_id, data[1])
-        time.sleep(1)
+        try:
+            await bot.send_message(group_id, data[1])
+            time.sleep(1)
+        except Exception as e:
+            with open('errors.txt', 'a', encoding='utf-8') as w:
+                w.write(str(e))
 
 
 if __name__ == '__main__':
