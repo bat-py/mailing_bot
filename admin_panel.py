@@ -2,11 +2,11 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardRemove
-
 import sql_handler
 import button_creator
 import datetime
 import cron_handler
+
 
 class MyStates(StatesGroup):
     waiting_for_password = State()
@@ -505,7 +505,7 @@ async def process_data(message: types.Message, state: FSMContext):
 
     # Отправим сообщение о том что расписание успешно сохранилась
     mesg = '✅ Данные сохранены. Можно увидеть подробно в меню "Список расписаний"'
-    button = button_creator.reply_keyboard_creator([['Назад', 'Главное меню']])
+    button = button_creator.reply_keyboard_creator([['Главное меню']])
 
     await message.answer(mesg, reply_markup=button)
 

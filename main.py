@@ -2,11 +2,13 @@ import logging
 import aiogram.types.reply_keyboard
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-
+import configparser
 import sql_handler
 import admin_panel
 
-API_TOKEN = '5073184755:AAFXBB0aNhKDlCCppiLxIwgL7mGyRAyfyZY'
+config = configparser.ConfigParser()
+config.read('config.ini')
+API_TOKEN = config['main']['api_token']
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -48,7 +48,7 @@ def del_group(chat_id):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("DELETE FROM `groups` WHERE chat_id = %s", (chat_id, ))
+    cursor.execute("DELETE FROM `groups` WHERE chat_id = %s", (chat_id,))
 
     connection.commit()
     connection.close()
@@ -113,7 +113,7 @@ def get_info_about_timetable(timetable_id):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT * FROM time_table WHERE timetable_id = %s", (timetable_id, ))
+    cursor.execute("SELECT * FROM time_table WHERE timetable_id = %s", (timetable_id,))
     info_about_timetable = cursor.fetchone()
 
     groups_id = info_about_timetable['groups_id']
@@ -156,7 +156,7 @@ def get_groups_list():
     groups_list = []
 
     for group in groups_dict:
-        chat_id = 'group_id'+group['chat_id']
+        chat_id = 'group_id' + group['chat_id']
         title = group['title']
 
         row = [[title, chat_id]]
@@ -171,7 +171,7 @@ def timetable_id_generator():
 
     while True:
         gen_id = str(random.randint(100000, 999999))
-        cursor.execute("SELECT timetable_id FROM time_table WHERE timetable_id = %s", (gen_id, ))
+        cursor.execute("SELECT timetable_id FROM time_table WHERE timetable_id = %s", (gen_id,))
         responce = cursor.fetchone()
 
         if not responce:
@@ -218,7 +218,7 @@ def get_timetable_title(timetable_id_for_delete):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT timetable_name FROM time_table WHERE timetable_id = %s", (timetable_id_for_delete, ))
+    cursor.execute("SELECT timetable_name FROM time_table WHERE timetable_id = %s", (timetable_id_for_delete,))
     timetable = cursor.fetchone()
 
     connection.close()
@@ -230,8 +230,30 @@ def delete_timetable(timetable_id):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("DELETE FROM time_table WHERE timetable_id = %s", (timetable_id, ))
+    cursor.execute("DELETE FROM time_table WHERE timetable_id = %s", (timetable_id,))
     connection.commit()
 
     connection.close()
 
+
+def get_groups_id_mailing_text(timetable_id):
+    """
+
+    Args:
+        timetable_id:
+
+    Returns:
+        groups_id_list, mailing_text
+    """
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT groups_id, mailing_text FROM time_table WHERE timetable_id = %s", (timetable_id,))
+    data = cursor.fetchone()
+
+    groups_id_list = data['groups_id'].split(',')
+    mailing_text = data['mailing_text']
+
+    connection.close()
+
+    return groups_id_list, mailing_text
