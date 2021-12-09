@@ -1,15 +1,19 @@
 import pymysql
 from pymysql.cursors import DictCursor
 import random
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 
 def connection_creator():
     con = pymysql.connect(
-        host='archlinux.uz',
-        user='crow',
-        password='ifuckyou',
-        db='telegram_manager',
-        charset='utf8mb4',
+        host=config['mysql']['host'],
+        user=config['mysql']['user'],
+        password=config['mysql']['password'],
+        db=config['mysql']['db'],
+        charset=config['mysql']['charset'],
         cursorclass=DictCursor
     )
 
