@@ -684,7 +684,7 @@ def register_handlers_admin_panel(dp: Dispatcher):
 
     dp.register_message_handler(
         admin_panel_menu,
-        lambda message: message.text == 'Главное меню',
+        lambda message: message.text == 'Главное меню' and message.chat.type == 'private',
         state='*'
     )
 

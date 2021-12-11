@@ -38,10 +38,9 @@ async def send_message(message: types.Message):
         await message.answer(mesg)
 
 
-@dp.message_handler(content_types=['photo'])
-async def send_info(message: types.Message):
-    await message.answer(message.caption)
-
+#@dp.message_handler(content_types=['photo'])
+#async def send_info(message: types.Message):
+#    await message.answer(message.caption)
 
 
 if __name__ == '__main__':
