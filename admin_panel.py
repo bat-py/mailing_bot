@@ -13,7 +13,7 @@ class MyStates(StatesGroup):
     waiting_for_new_timetable_name = State()
     waiting_for_groups = State()
     waiting_for_hours = State()
-    waiting_for_mailing_message_text = State()
+    waiting_for_mailing_message_photo_caption = State()
     waiting_for_term = State()
     processing_data = State()
     waiting_for_new_password = State()
@@ -406,7 +406,7 @@ async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, sta
         return
 
     # Меняем статус на waiting_for_mailing_text
-    await MyStates.waiting_for_mailing_message_text.set()
+    await MyStates.waiting_for_mailing_message_photo_caption.set()
 
     mesg = 'Отравьте текст сообщения рассылки:'
     reply_buttons_list = [['Назад', 'Главное меню']]
@@ -419,16 +419,18 @@ async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, sta
 
 
 # # # Get mailing message text system
-async def mailing_message_text_given(message: types.Message, state: FSMContext):
+async def mailing_photo_caption_given(message: types.Message, state: FSMContext):
     """
     Запустится после того как пользователь отправил текст сообщения рассылки
     Returns:
         Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100):
     """
-    mailing_message_text = message.text
+    photo = message.photo[-1]
+    caption = message.caption
 
-    # Запищем отправленный текст в переменный mailing_message_text в state
-    await state.update_data(mailing_message_text=mailing_message_text)
+    # Запищем отправленный фото и его описание в state
+    await state.update_data(mailing_photo=photo)
+    await state.update_data(mailing_caption=caption)
 
     # Меняем статус
     await MyStates.waiting_for_term.set()
@@ -470,10 +472,11 @@ async def term_given(message: types.Message, state: FSMContext):
 
 
 async def term_menu_back_button(message: types.Message, state: FSMContext):
-    await state.update_data(mailing_message_text='')
+    await state.update_data(mailing_photo='')
+    await state.update_data(mailing_caption='')
 
     # Меняем статус на waiting_for_mailing_text
-    await MyStates.waiting_for_mailing_message_text.set()
+    await MyStates.waiting_for_mailing_message_photo_caption.set()
 
     mesg = 'Отравьте текст сообщения рассылки:'
     reply_buttons_list = [['Назад', 'Главное меню']]
@@ -487,13 +490,20 @@ async def term_menu_back_button(message: types.Message, state: FSMContext):
 async def process_data(message: types.Message, state: FSMContext):
     all_data = await state.get_data()
 
+    timetable_id = sql_handler.timetable_id_generator()
+
+    destination_file = 'images/'+timetable_id+'.jpg'
+    await all_data['mailing_photo'].download(destination_file=destination_file)
+
     ready_data = {
-        'timetable_id': sql_handler.timetable_id_generator(),
+        'timetable_id': timetable_id,
         'timetable_name': all_data['timetable_name'],
         'chosen_groups': ','.join(all_data['chosen_groups']),
         'chosen_hours': ','.join(all_data['chosen_hours']),
-        'mailing_message_text': all_data['mailing_message_text'],
-        'term': datetime.date.today() + datetime.timedelta(days=int(message.text))
+        #'mailing_photo': all_data['mailing_message_text'],
+        'mailing_caption': all_data['mailing_caption'],
+        'term': datetime.date.today() + datetime.timedelta(days=int(message.text)),
+        'mailing_photo': destination_file
     }
 
     # Закрываем все статусы
@@ -760,12 +770,13 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_message_handler(
         mailing_message_text_back_button,
         lambda message: message.text == 'Назад',
-        state=MyStates.waiting_for_mailing_message_text
+        state=MyStates.waiting_for_mailing_message_photo_caption
     )
 
     dp.register_message_handler(
-        mailing_message_text_given,
-        state=MyStates.waiting_for_mailing_message_text
+        mailing_photo_caption_given,
+        content_types=['photo'],
+        state=MyStates.waiting_for_mailing_message_photo_caption
     )
 
     dp.register_message_handler(

@@ -3,6 +3,9 @@ import logging
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import sys
+
+from aiogram.types import InputFile
+
 import sql_handler
 import time
 import configparser
@@ -22,12 +25,14 @@ dp = Dispatcher(bot, storage=storage)
 
 async def main():
     timetable_id = sys.argv[1]
-    # Gets (groups_id_list, mailing_text)
-    data = sql_handler.get_groups_id_mailing_text(timetable_id)
+    # Gets (groups_id_list, mailing_text, mailing_image)
+    data = sql_handler.get_groups_id_mailing_text_image(timetable_id)
+
+    photo = InputFile(data[2])
 
     for group_id in data[0]:
         try:
-            await bot.send_message(group_id, data[1])
+            await bot.send_photo(group_id, photo=photo, caption=data[1])
             time.sleep(1)
         except Exception as e:
             with open('errors.txt', 'a', encoding='utf-8') as w:

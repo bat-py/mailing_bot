@@ -189,7 +189,7 @@ def ready_data_handler(ready_data):
 
     ready_data_list = list(map(lambda i: i[1], ready_data.items()))
 
-    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s);", ready_data_list)
+    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s);", ready_data_list)
     connection.commit()
 
     connection.close()
@@ -240,27 +240,28 @@ def delete_timetable(timetable_id):
     connection.close()
 
 
-def get_groups_id_mailing_text(timetable_id):
+def get_groups_id_mailing_text_image(timetable_id):
     """
 
     Args:
         timetable_id:
 
     Returns:
-        groups_id_list, mailing_text
+        groups_id_list, mailing_text, mailing_photo
     """
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT groups_id, mailing_text FROM time_table WHERE timetable_id = %s", (timetable_id,))
+    cursor.execute("SELECT groups_id, mailing_text, image FROM time_table WHERE timetable_id = %s", (timetable_id,))
     data = cursor.fetchone()
 
     groups_id_list = data['groups_id'].split(',')
     mailing_text = data['mailing_text']
+    mailing_image = data['image']
 
     connection.close()
 
-    return groups_id_list, mailing_text
+    return groups_id_list, mailing_text, mailing_image
 
 
 def change_password(new_password):
