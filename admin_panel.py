@@ -418,10 +418,10 @@ async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, sta
     )
 
 
-# # # Get mailing message text system
+# # # Get mailing message photo(caption) system
 async def mailing_photo_caption_given(message: types.Message, state: FSMContext):
     """
-    Запустится после того как пользователь отправил текст сообщения рассылки
+    Запустится после того как пользователь отправил фото сообщения рассылки
     Returns:
         Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100):
     """
@@ -430,6 +430,29 @@ async def mailing_photo_caption_given(message: types.Message, state: FSMContext)
 
     # Запищем отправленный фото и его описание в state
     await state.update_data(mailing_photo=photo)
+    await state.update_data(mailing_caption=caption)
+
+    # Меняем статус
+    await MyStates.waiting_for_term.set()
+
+    mesg = 'Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100:'
+    reply_buttons_list = [['Назад', 'Главное меню']]
+    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+
+    await message.answer(mesg, reply_markup=reply_buttons)
+
+
+# # # Get mailing message text system
+async def mailing_text_given(message: types.Message, state: FSMContext):
+    """
+    Запустится после того как пользователь отправил текст сообщения рассылки
+    Returns:
+        Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100):
+    """
+    caption = message.text
+
+    # Запищем отправленный фото и его описание в state
+    await state.update_data(mailing_photo=None)
     await state.update_data(mailing_caption=caption)
 
     # Меняем статус
@@ -492,13 +515,19 @@ async def process_data(message: types.Message, state: FSMContext):
 
     timetable_id = sql_handler.timetable_id_generator()
 
-    destination_file = 'images/'+timetable_id+'.jpg'
-    await all_data['mailing_photo'].download(destination_file=destination_file)
+    # Если отправил фотографию для рассылки:
+    if  all_data['mailing_photo']:
+        destination_file = 'images/'+timetable_id+'.jpg'
+        await all_data['mailing_photo'].download(destination_file=destination_file)
     
-    if not all_data['mailing_caption']:
-        text = '.'
+        if not all_data['mailing_caption']:
+            text = '.'
+        else:
+            text = all_data['mailing_caption']
+    # Если отправил текст для рассылки:
     else:
         text = all_data['mailing_caption']
+        destination_file = None
 
     ready_data = {
         'timetable_id': timetable_id,
@@ -781,6 +810,13 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_message_handler(
         mailing_photo_caption_given,
         content_types=['photo'],
+        state=MyStates.waiting_for_mailing_message_photo_caption
+    )
+
+    # Если админ вместо фотки с описанием рекламы отправил только текст
+    dp.register_message_handler(
+        mailing_text_given,
+        content_types=['text'],
         state=MyStates.waiting_for_mailing_message_photo_caption
     )
 

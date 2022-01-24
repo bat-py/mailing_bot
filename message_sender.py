@@ -27,13 +27,17 @@ async def main():
 
     for group_id in data[0]:
         try:
-            photo = open(data[2], 'rb')
-            print(group_id)
+            if data[2]:
+                photo = open(data[2], 'rb')
+                print(group_id)
 
-            if data[1] == '.':
-                await bot.send_photo(group_id, photo=photo)
+                if data[1] == '.':
+                    await bot.send_photo(group_id, photo=photo)
+                else:
+                    await bot.send_photo(group_id, photo=photo, caption=data[1])
             else:
-                await bot.send_photo(group_id, photo=photo, caption=data[1])
+                await bot.send_message(group_id, text=data[1])
+
             await asyncio.sleep(2)
 
         except Exception as e:
