@@ -17,10 +17,6 @@ API_TOKEN = config['main']['api_token']
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Initialize bot and dispatcher
-bot = Bot(token=API_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
 
 
 async def main():
@@ -33,14 +29,35 @@ async def main():
         try:
             photo = open(data[2], 'rb')
             print(group_id)
-            await bot.send_photo(group_id, photo=photo, caption=data[1])
+
+            if data[1] == '.':
+                await bot.send_photo(group_id, photo=photo)
+            else:
+                await bot.send_photo(group_id, photo=photo, caption=data[1])
             await asyncio.sleep(2)
 
         except Exception as e:
             with open('errors.txt', 'a', encoding='utf-8') as w:
-                w.write('\n\n'+str(e))
+                w.write('\n\n'+str(e)+' '+str(timetable_id))
 
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    errors = 0
+
+    while True:
+        try:
+            # Initialize bot and dispatcher
+            bot = Bot(token=API_TOKEN)
+            storage = MemoryStorage()
+            dp = Dispatcher(bot, storage=storage)
+            
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(main())
+            loop.close()
+            break
+        except:
+            if errors == 10:
+                break
+            time.sleep(10)
+        errors += 1
+

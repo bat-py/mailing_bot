@@ -66,7 +66,7 @@ async def password_checker(message: types.Message, state: FSMContext):
 async def timetable_list_handler(callback_query: types.CallbackQuery, state: FSMContext):
     # Вернет [ [ [button_name, 'timetable_id1216546'] ], [], [] ]
     timetable_list = sql_handler.get_timetable_list()
-
+    #print(timetable_list)
     mesg = 'Список расписаний:'
     inline_buttons = button_creator.inline_keyboard_creator(timetable_list)
 
@@ -494,6 +494,11 @@ async def process_data(message: types.Message, state: FSMContext):
 
     destination_file = 'images/'+timetable_id+'.jpg'
     await all_data['mailing_photo'].download(destination_file=destination_file)
+    
+    if not all_data['mailing_caption']:
+        text = '.'
+    else:
+        text = all_data['mailing_caption']
 
     ready_data = {
         'timetable_id': timetable_id,
@@ -501,7 +506,7 @@ async def process_data(message: types.Message, state: FSMContext):
         'chosen_groups': ','.join(all_data['chosen_groups']),
         'chosen_hours': ','.join(all_data['chosen_hours']),
         #'mailing_photo': all_data['mailing_message_text'],
-        'mailing_caption': all_data['mailing_caption'],
+        'mailing_caption': text,
         'term': datetime.date.today() + datetime.timedelta(days=int(message.text)),
         'mailing_photo': destination_file
     }
