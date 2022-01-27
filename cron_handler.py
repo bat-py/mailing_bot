@@ -27,7 +27,8 @@ def new_job_creator(ready_data):
 
 
 def job_deletor_by_comment(timetable_id):
-    my_cron = CronTab(user='crow')
+    user = config['cron']['user']
+    my_cron = CronTab(user=user)
 
     my_cron.remove_all(comment=timetable_id)
 
