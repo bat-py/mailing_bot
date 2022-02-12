@@ -568,7 +568,7 @@ async def process_data(message: types.Message, state: FSMContext):
         text = all_data['mailing_caption']
         video_id = None
         destination_file = None
-
+    print(text)
     ready_data = {
         'timetable_id': timetable_id,
         'timetable_name': all_data['timetable_name'],
@@ -854,17 +854,17 @@ def register_handlers_admin_panel(dp: Dispatcher):
         state=MyStates.waiting_for_mailing_message_photo_caption
     )
 
+    # Если админ вместо фотки с описанием рекламы отправил видео
+    dp.register_message_handler(
+        mailing_video_given,
+        content_types=['video'],
+        state=MyStates.waiting_for_mailing_message_photo_caption
+    )
+
     # Если админ вместо фотки с описанием рекламы отправил только текст
     dp.register_message_handler(
         mailing_text_given,
         content_types=['text'],
-        state=MyStates.waiting_for_mailing_message_photo_caption
-    )
-
-    # Если админ вместо фотки с описанием рекламы отправил только видео
-    dp.register_message_handler(
-        mailing_text_given,
-        content_types=['video'],
         state=MyStates.waiting_for_mailing_message_photo_caption
     )
 
