@@ -34,9 +34,9 @@ async def main():
                 if data[1] == '.':
                     await bot.send_photo(group_id, photo=photo)
                 else:
-                    await bot.send_photo(group_id, photo=photo, caption=data[1])
+                    await bot.send_photo(group_id, photo=photo, caption=data[1], parse_mode='html')
             else:
-                await bot.send_message(group_id, text=data[1])
+                await bot.send_message(group_id, text=data[1], parse_mode='html')
 
             await asyncio.sleep(2)
 
