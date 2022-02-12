@@ -430,6 +430,7 @@ async def mailing_photo_caption_given(message: types.Message, state: FSMContext)
 
     # Запищем отправленный фото и его описание в state
     await state.update_data(mailing_photo=photo)
+    await state.update_data(mailing_video=None)
     await state.update_data(mailing_caption=caption)
 
     # Меняем статус
@@ -453,6 +454,30 @@ async def mailing_text_given(message: types.Message, state: FSMContext):
 
     # Запищем отправленный фото и его описание в state
     await state.update_data(mailing_photo=None)
+    await state.update_data(mailing_video=None)
+    await state.update_data(mailing_caption=caption)
+
+    # Меняем статус
+    await MyStates.waiting_for_term.set()
+
+    mesg = 'Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100:'
+    reply_buttons_list = [['Назад', 'Главное меню']]
+    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+
+    await message.answer(mesg, reply_markup=reply_buttons)
+
+
+async def mailing_video_given(message: types.Message, state: FSMContext):
+    """
+    Запустится после того как пользователь отправил видео рассылки
+    Returns:
+        Сколько дней нужно отправлять сообщение. Укажите цифру в диапазоне от 1 до 100):
+    """
+    caption = message.caption
+
+    # Запищем отправленный фото и его описание в state
+    await state.update_data(mailing_photo=None)
+    await state.update_data(mailing_video=message.video.file_id)
     await state.update_data(mailing_caption=caption)
 
     # Меняем статус
@@ -519,14 +544,29 @@ async def process_data(message: types.Message, state: FSMContext):
     if  all_data['mailing_photo']:
         destination_file = 'images/'+timetable_id+'.jpg'
         await all_data['mailing_photo'].download(destination_file=destination_file)
-    
+
         if not all_data['mailing_caption']:
             text = '.'
         else:
             text = all_data['mailing_caption']
+
+        video_id = None
+
+    # Если отправил видео для рассылки:
+    elif all_data['mailing_video']:
+        destination_file = None
+
+        if not all_data['mailing_caption']:
+            text = '.'
+        else:
+            text = all_data['mailing_caption']
+
+        video_id = all_data['mailing_video']
+
     # Если отправил текст для рассылки:
     else:
         text = all_data['mailing_caption']
+        video_id = None
         destination_file = None
 
     ready_data = {
@@ -537,7 +577,8 @@ async def process_data(message: types.Message, state: FSMContext):
         #'mailing_photo': all_data['mailing_message_text'],
         'mailing_caption': text,
         'term': datetime.date.today() + datetime.timedelta(days=int(message.text)),
-        'mailing_photo': destination_file
+        'mailing_photo': destination_file,
+        'video_id' : video_id
     }
 
     # Закрываем все статусы
@@ -817,6 +858,13 @@ def register_handlers_admin_panel(dp: Dispatcher):
     dp.register_message_handler(
         mailing_text_given,
         content_types=['text'],
+        state=MyStates.waiting_for_mailing_message_photo_caption
+    )
+
+    # Если админ вместо фотки с описанием рекламы отправил только видео
+    dp.register_message_handler(
+        mailing_text_given,
+        content_types=['video'],
         state=MyStates.waiting_for_mailing_message_photo_caption
     )
 

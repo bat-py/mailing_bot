@@ -21,20 +21,29 @@ logging.basicConfig(level=logging.INFO)
 
 async def main():
     timetable_id = sys.argv[1]
-    # Gets (groups_id_list, mailing_text, mailing_image)
+    # Gets (groups_id_list, mailing_text, mailing_image, mailing_video)
     data = sql_handler.get_groups_id_mailing_text_image(timetable_id)
 
 
     for group_id in data[0]:
         try:
+            # Если сообщение с фотографий
             if data[2]:
                 photo = open(data[2], 'rb')
-                print(group_id)
 
                 if data[1] == '.':
                     await bot.send_photo(group_id, photo=photo)
                 else:
                     await bot.send_photo(group_id, photo=photo, caption=data[1], parse_mode='html')
+            # Если сообщение с видео
+            elif data[3]:
+                video_id = data[3]
+
+                if data[1] == '.':
+                    await bot.send_video(group_id, video=video_id)
+                else:
+                    await bot.send_video(group_id, video=video_id, caption=data[1], parse_mode='html')
+
             else:
                 await bot.send_message(group_id, text=data[1], parse_mode='html')
 

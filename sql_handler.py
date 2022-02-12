@@ -189,7 +189,7 @@ def ready_data_handler(ready_data):
 
     ready_data_list = list(map(lambda i: i[1], ready_data.items()))
 
-    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s);", ready_data_list)
+    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s, %s);", ready_data_list)
     connection.commit()
 
     connection.close()
@@ -258,10 +258,11 @@ def get_groups_id_mailing_text_image(timetable_id):
     groups_id_list = data['groups_id'].split(',')
     mailing_text = data['mailing_text']
     mailing_image = data['image']
+    mailing_video = data['video_id']
 
     connection.close()
 
-    return groups_id_list, mailing_text, mailing_image
+    return groups_id_list, mailing_text, mailing_image, mailing_video
 
 
 def change_password(new_password):
