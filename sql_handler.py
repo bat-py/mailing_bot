@@ -252,7 +252,7 @@ def get_groups_id_mailing_text_image(timetable_id):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT groups_id, mailing_text, image FROM time_table WHERE timetable_id = %s", (timetable_id,))
+    cursor.execute("SELECT groups_id, mailing_text, image, video_id FROM time_table WHERE timetable_id = %s", (timetable_id,))
     data = cursor.fetchone()
 
     groups_id_list = data['groups_id'].split(',')
