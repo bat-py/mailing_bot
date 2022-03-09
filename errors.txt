@@ -2,3 +2,55 @@
 
 
 Connection_not_inited 545477
+
+Aiohttp client throws an error: ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [Network is unreachable] 883355
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 157400
+
+Media_caption_too_long 157400
+
+Media_caption_too_long 157400
+
+Media_caption_too_long 157400
+
+Media_caption_too_long 157400
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
+
+Media_caption_too_long 974185
