@@ -56,3 +56,21 @@ def hours_buttons_list():
     return hours
 
 
+def hours_menu_inline_buttons_creator():
+    """
+    Создает inline кнопки для меню hours_menu
+    Returns:
+
+    """
+    # Создаем кнопки inline кнопки 0-9 и очистить, добавить, назад, далее(переход в следующий меню)
+    hours_menu_buttons_list = [
+        [['1', 't_1'], ['2', 't_2'], ['3', 't_3']],
+        [['4', 't_4'], ['5', 't_5'], ['6', 't_6']],
+        [['7', '7t_'], ['8', 't_8'], ['9', 't_9']],
+        [['⬅️', 't_backspace'], ['0', 't_0'], ['🆗', 't_time_chosen']],
+        [['Дальше', 't_all_hours_chosen']]
+    ]
+    hours_menu_buttons = inline_keyboard_creator(hours_menu_buttons_list, row_width=3)
+
+    return hours_menu_buttons
+

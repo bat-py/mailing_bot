@@ -189,6 +189,15 @@ def ready_data_handler(ready_data):
 
     ready_data_list = list(map(lambda i: i[1], ready_data.items()))
 
+    # В chosen_hours хранится: [['12', '34'], ...]. А мы создадим из них '12:34, 23:01, ...' и запишем в базу
+    chosen_hours = ready_data_list[3]
+    chosen_hours_str = ''
+
+    for time in chosen_hours:
+        chosen_hours_str += time[0] + ':' + time[1] + ', '
+
+    ready_data_list[3] = chosen_hours_str.rstrip(', ')
+
     cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s, %s);", ready_data_list)
     connection.commit()
 

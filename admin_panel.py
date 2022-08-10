@@ -91,13 +91,7 @@ async def show_info_about_timetable(callback_query: types.CallbackQuery, state: 
     timetable_id = callback_query.data.replace('timetable_id', '')
     timetable_info = sql_handler.get_info_about_timetable(timetable_id)
 
-    hours_str = timetable_info['hours']
-    hours_list = hours_str.split(',')
-    hours = ''
-    for i in hours_list:
-        hour = i + ':00, '
-        hours += hour
-    hours = hours[:-2]
+    hours = timetable_info['hours'].replace(',', ', ')
 
     full_mailing_text = timetable_info['mailing_text']
     mailing_text = full_mailing_text[:16] + '...'
@@ -290,132 +284,196 @@ async def choise_groups_menu_next_button(callback_query: types.CallbackQuery, st
 
     # Меняем статус на "waiting_for_hours"
     await MyStates.waiting_for_hours.set()
+
     # Создаем массив "chosen_hours" в state
     await state.update_data(chosen_hours=[])
+    # Создаем массив "time" в state. Тут хранится максимум 4 числа, который из-за будем создовать время и добавлять в chosen_hours
+    await state.update_data(time=[])
 
     # Массив с 24 кнопками
-    hours_buttons = button_creator.hours_buttons_list()
-    hours_buttons.append([['Дальше', 'all_hours_chosen']])
-    ready_buttons = button_creator.inline_keyboard_creator(hours_buttons, row_width=4)
-    mesg = 'Выберите время:'
+    # hours_buttons = button_creator.hours_buttons_list()
+    # hours_buttons.append([['Дальше', 'all_hours_chosen']])
+    # ready_buttons = button_creator.inline_keyboard_creator(hours_buttons, row_width=4)
+    # mesg = 'Выберите время:'
+    #
+    # await callback_query.bot.send_message(
+    #     callback_query.message.chat.id,
+    #     mesg,
+    #     reply_markup=ready_buttons
+    # )
 
+    hours_menu_buttons = button_creator.hours_menu_inline_buttons_creator(
+    )
+    mesg = '<b>Укажите время (как минимум один):</b>\n\n<b>Выбранное время:</b>\n\n<b>Новое время:</b> ** <b>:</b> **'
     await callback_query.bot.send_message(
         callback_query.message.chat.id,
         mesg,
-        reply_markup=ready_buttons
+        reply_markup=hours_menu_buttons,
+        parse_mode='html'
     )
 
 
-# # # Choise hours menu system:
-async def choise_hours_menu(callback_query: types.CallbackQuery, state: FSMContext):
+async def hours_menu_message_changer(callback_query_or_message: types.CallbackQuery, chosen_hours, time):
     """
+    Эту функция запускает hours_menu_buttons_handler при нажатии на числа в меню "hours_menu"
+    Функция изменит в сообщении "** : **"
+    Args:
+        callback_query_or_message:
+        chosen_hours: [['14', '53'], ...] - например первый массив это 14:53
+        time: массив, в котором хранится максимум 4 числа и мы тут изменим сообщение(**:**) исходя из этих чисел
     Returns:
-        Вернет 24кнопки часов если до этого выбрал пользователь какой-то время тогда поставит ✅ и изменит callback_data
     """
-    all_data = await state.get_data()
-    # Массив с 24 кнопками
-    hours_buttons = button_creator.hours_buttons_list()
 
-    # Выбранные часы:
-    chosen_hours = all_data['chosen_hours']
+    mesg1 = '<b>Укажите время (как минимум один):</b>\n\n'
 
-    ready_hours = []
-    for hour_row in hours_buttons:
-        new_row = []
-        for hour in hour_row:
-            if hour[1].replace('hour', '') in chosen_hours:
-                chosen_hour_button_name = hour[0] + ' ✅'
-                chosen_hour_button_callback_data = hour[1].replace('hour', 'chosen_hour')
-                chosen_hour = [chosen_hour_button_name, chosen_hour_button_callback_data]
-                new_row.append(chosen_hour)
-            else:
-                new_row.append(hour)
+    str_time_list = []
+    # Составляем время в виде str(13:23) из массива chosen_hours. Там может быть несколько
+    for t in chosen_hours:
+        just_str = ''.join(t)
+        str_time = just_str[:2] + ':' + just_str[2:]
 
-        ready_hours.append(new_row)
+        str_time_list.append(str_time)
 
-    # Добавим кнопку дальше
-    ready_hours.append([['Дальше', 'all_hours_chosen']])
-    # Создаем кнопки на основе ready_hours
-    ready_hours_buttons = button_creator.inline_keyboard_creator(ready_hours, row_width=4)
+    # Составим сообщение: Выбранное время: 15:12, 05:15
+    mesg2 = '<b>Выбранное время:</b> ' + ', '.join(str_time_list) + '\n\n'
 
-    # Изменим уже существующий inline кнопки на основе новых кнопок
+    mesg3 = '<b>Новое время:</b> ** <b>:</b> **'
+    # Вместо * поставим числа который уже выбраны
+    for i in time:
+        mesg3 = mesg3.replace('*', i, 1)
+
+    mesg = mesg1 + mesg2 + mesg3
+
+    hours_menu_buttons = button_creator.hours_menu_inline_buttons_creator()
+
+    # Если оказался в меня из предедущего
     try:
-        await callback_query.bot.edit_message_reply_markup(
-            callback_query.message.chat.id,
-            callback_query.message.message_id,
-            reply_markup=ready_hours_buttons
+        await callback_query_or_message.bot.edit_message_text(
+            text=mesg,
+            chat_id=callback_query_or_message.from_user.id,
+            message_id=callback_query_or_message.message.message_id,
+            reply_markup=hours_menu_buttons,
+            parse_mode='html'
         )
-    # Если эту функцию запустил кнопка назад предыдущего меню, тогда запустится эта часть
+    # Если вернулся назад из следующего меню
     except:
-        mesg = 'Выберите время:'
-
-        await callback_query.bot.send_message(
-            callback_query.chat.id,
-            mesg,
-            reply_markup=ready_hours_buttons
+        await callback_query_or_message.bot.send_message(
+            chat_id=callback_query_or_message.chat.id,
+            text=mesg,
+            reply_markup=hours_menu_buttons,
+            parse_mode='html'
         )
 
 
-async def one_hour_chosen(callback_query: types.CallbackQuery, state: FSMContext):
-    """
-    Запускается после того как пользователь выбрал какой-то час. Добавит выбранный час в массив chosen_hours и
-    запустит функцию choise_hours_menu
-    """
-    chosen_hour = callback_query.data.replace('hour', '')
 
+
+async def hours_menu_buttons_handler(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Запустится после того как пользователь нажмет на кнопку: 0-9, ⬅️(backspace), 🆗(time_chosen), Дальше
+    Args:
+        callback_query:
+        state:
+    Returns:
+    """
     all_data = await state.get_data()
     chosen_hours = all_data['chosen_hours']
+    time = all_data['time']
 
-    if chosen_hour not in chosen_hours:
-        chosen_hours.append(chosen_hour)
+    pressed_button = callback_query.data.replace('t_', '')
 
-    await state.update_data(chosen_hours=chosen_hours)
+    # Если нажал на кнопку 0-9
+    if pressed_button.isdigit():
+        # Если еще не указал 4 числа(**:**), тогда добавим выбранное число в массив time и изменим сообщение(05:**)
+        if len(time) < 4:
+            time.append(pressed_button)
+            # Сохраним выбранное число в массиве
+            await state.update_data(time=time)
 
-    await choise_hours_menu(callback_query, state)
+            # Изменим сообщение(**:**)
+            await hours_menu_message_changer(callback_query, chosen_hours, time)
 
+    # Если нажал на ⬅️(backspace), то удалим последний элемент из time и изменим сообщение
+    elif pressed_button == 'backspace':
+        # Если time не пустой, то удалим последний элемент. Если пустой но ничего не будем делать
+        if time:
+            time.pop()
 
-async def cancel_chosen_hour(callback_query: types.CallbackQuery, state: FSMContext):
-    """
-    Запустится если пользователь выбрал уже выбранный час(то есть отменил). Удалит этот час из массива chosen_hours и
-    запустит фукнцию choise_hours_menu
-    """
-    canceled_hour = callback_query.data.replace('chosen_hour', '')
+            # Сохраним выбранное число в массиве
+            await state.update_data(time=time)
 
-    all_data = await state.get_data()
-    chosen_hours = all_data['chosen_hours']
+            # Изменим сообщение(**:**)
+            await hours_menu_message_changer(callback_query, chosen_hours, time)
 
-    new_chosen_hours = [i for i in chosen_hours if i != canceled_hour]
+    # Если нажал на 🆗, тогда проверим указанное время, если все правильно то добавим его в массив chosen_hours
+    # Если время не правильно указано или в массиве time не 4 элементов, тогда сообщим об ошибке
+    elif pressed_button == 'time_chosen':
+        # Если указано 4 числа, тогда проверим время и если указано правильное время, тогда добавим его в chosen_hours
+        if len(time) == 4:
+            hour = ''.join(time[:2])
+            minute = ''.join(time[2:])
 
-    await state.update_data(chosen_hours=new_chosen_hours)
+            # Если время указано правильно
+            if 0 <= int(hour) < 24 and 0 <= int(minute) < 60:
+                chosen_hours.append([hour, minute])
 
-    await choise_hours_menu(callback_query, state)
+                # Сохраним новый chosen_hours в state
+                await state.update_data(chosen_hours=chosen_hours)
+
+                # Аннулируем time
+                time = []
+                await state.update_data(time=time)
+
+                # Изменим сообщение
+                await hours_menu_message_changer(callback_query, chosen_hours, time)
+
+            # Если неправильно указано время
+            else:
+                mesg = 'Время указано неправильно!'
+
+                await callback_query.answer(mesg)
+
+        # Если админ нажал на 🆗 не указав 4 чисел, тогда сообщим об ошибке
+        else:
+            mesg = 'Время указано неправильно!'
+
+            await callback_query.answer(mesg)
+
+    # Если нажал на Дальше, проверим указал ли хотябы одно время(chosen_hours), если да то перейдем на следующий меню
+    elif pressed_button == 'all_hours_chosen':
+        if chosen_hours:
+            # Меняем статус на waiting_for_mailing_text
+            await MyStates.waiting_for_mailing_message_photo_caption.set()
+
+            # Составим текст сообщения
+            # В chosen_hours хранится: [['12', '34'], ...]. А мы создадим из них '12:34, 23:01, ...' и запишем в базу
+            chosen_hours_str = ''
+            for time in chosen_hours:
+                chosen_hours_str += time[0] + ':' + time[1] + ', '
+            mesg1 = f'<b>Список времени:</b> ' + chosen_hours_str.rstrip(', ')
+            mesg2 = '<b>Отравьте текст сообщения рассылки:</b>'
+            mesg = mesg1 + '\n\n' + mesg2
+
+            reply_buttons_list = [['Назад', 'Главное меню']]
+            reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
+            await callback_query.bot.send_message(
+                callback_query.message.chat.id,
+                mesg,
+                reply_markup=reply_buttons,
+                parse_mode='html'
+            )
+
+        # Если не указал ни одно время, то сообщим об ошибке
+        else:
+            mesg = 'Пожалуйста укажите хотя-бя одно время'
+
+            await callback_query.answer(mesg)
 
 
 async def choise_hours_menu_back_button(message: types.Message, state: FSMContext):
     await state.update_data(chosen_hours=[])
+    await state.update_data(time=[])
 
     await timetable_name_chosen(message, state)
-
-
-async def choise_hours_menu_next_button(callback_query: types.CallbackQuery, state: FSMContext):
-    all_data = await state.get_data()
-
-    # Если пользователь нажал на кнопку дальше не выбрав время тогда покажем уведомление об этом и остановим функцию
-    if not all_data['chosen_hours']:
-        await callback_query.answer('Пожалуйста выберите какое-то время')
-        return
-
-    # Меняем статус на waiting_for_mailing_text
-    await MyStates.waiting_for_mailing_message_photo_caption.set()
-
-    mesg = 'Отравьте текст сообщения рассылки:'
-    reply_buttons_list = [['Назад', 'Главное меню']]
-    reply_buttons = button_creator.reply_keyboard_creator(reply_buttons_list)
-    await callback_query.bot.send_message(
-        callback_query.message.chat.id,
-        mesg,
-        reply_markup=reply_buttons
-    )
 
 
 # # # Get mailing message photo(caption) system
@@ -494,7 +552,11 @@ async def mailing_message_text_back_button(message: types.Message, state: FSMCon
     # Меняем статус на "waiting_for_hours"
     await MyStates.waiting_for_hours.set()
 
-    await choise_hours_menu(message, state)
+    all_data = await state.get_data()
+    chosen_hours = all_data['chosen_hours']
+    time = all_data['time']
+
+    await hours_menu_message_changer(message, chosen_hours, time)
 
 
 # # # Get term system
@@ -541,7 +603,7 @@ async def process_data(message: types.Message, state: FSMContext):
     timetable_id = sql_handler.timetable_id_generator()
 
     # Если отправил фотографию для рассылки:
-    if  all_data['mailing_photo']:
+    if all_data['mailing_photo']:
         destination_file = 'images/'+timetable_id+'.jpg'
         await all_data['mailing_photo'].download(destination_file=destination_file)
 
@@ -568,17 +630,18 @@ async def process_data(message: types.Message, state: FSMContext):
         text = all_data['mailing_caption']
         video_id = None
         destination_file = None
-    print(text)
+
     ready_data = {
         'timetable_id': timetable_id,
         'timetable_name': all_data['timetable_name'],
         'chosen_groups': ','.join(all_data['chosen_groups']),
-        'chosen_hours': ','.join(all_data['chosen_hours']),
-        #'mailing_photo': all_data['mailing_message_text'],
+        # В chosen_hours хранится: [['12', '34'], ...]
+        'chosen_hours': all_data['chosen_hours'],
+        # 'mailing_photo': all_data['mailing_message_text'],
         'mailing_caption': text,
         'term': datetime.date.today() + datetime.timedelta(days=int(message.text)),
         'mailing_photo': destination_file,
-        'video_id' : video_id
+        'video_id': video_id
     }
 
     # Закрываем все статусы
@@ -819,14 +882,8 @@ def register_handlers_admin_panel(dp: Dispatcher):
     )
 
     dp.register_callback_query_handler(
-        one_hour_chosen,
-        lambda c: c.data.startswith('hour'),
-        state=MyStates.waiting_for_hours
-    )
-
-    dp.register_callback_query_handler(
-        cancel_chosen_hour,
-        lambda c: c.data.startswith('chosen_hour'),
+        hours_menu_buttons_handler,
+        lambda c: c.data.startswith('t_'),
         state=MyStates.waiting_for_hours
     )
 
@@ -835,12 +892,12 @@ def register_handlers_admin_panel(dp: Dispatcher):
         lambda message: message.text == 'Назад',
         state=MyStates.waiting_for_hours
     )
-
-    dp.register_callback_query_handler(
-        choise_hours_menu_next_button,
-        lambda c: c.data == 'all_hours_chosen',
-        state=MyStates.waiting_for_hours
-    )
+    #
+    # dp.register_callback_query_handler(
+    #     choise_hours_menu_next_button,
+    #     lambda c: c.data == 'all_hours_chosen',
+    #     state=MyStates.waiting_for_hours
+    # )
 
     dp.register_message_handler(
         mailing_message_text_back_button,
