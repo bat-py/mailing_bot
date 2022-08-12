@@ -66,7 +66,7 @@ def hours_menu_inline_buttons_creator():
     hours_menu_buttons_list = [
         [['1', 't_1'], ['2', 't_2'], ['3', 't_3']],
         [['4', 't_4'], ['5', 't_5'], ['6', 't_6']],
-        [['7', '7t_'], ['8', 't_8'], ['9', 't_9']],
+        [['7', 't_7'], ['8', 't_8'], ['9', 't_9']],
         [['⬅️', 't_backspace'], ['0', 't_0'], ['🆗', 't_time_chosen']],
         [['Дальше', 't_all_hours_chosen']]
     ]
