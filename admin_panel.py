@@ -365,8 +365,6 @@ async def hours_menu_message_changer(callback_query_or_message: types.CallbackQu
         )
 
 
-
-
 async def hours_menu_buttons_handler(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Запустится после того как пользователь нажмет на кнопку: 0-9, ⬅️(backspace), 🆗(time_chosen), Дальше
@@ -641,7 +639,8 @@ async def process_data(message: types.Message, state: FSMContext):
         'mailing_caption': text,
         'term': datetime.date.today() + datetime.timedelta(days=int(message.text)),
         'mailing_photo': destination_file,
-        'video_id': video_id
+        'video_id': video_id,
+        'admin_chat_id': message.from_user.id
     }
 
     # Закрываем все статусы

@@ -198,7 +198,7 @@ def ready_data_handler(ready_data):
 
     ready_data_list[3] = chosen_hours_str.rstrip(', ')
 
-    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s, %s);", ready_data_list)
+    cursor.execute("INSERT INTO time_table VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s);", ready_data_list)
     connection.commit()
 
     connection.close()
@@ -261,7 +261,8 @@ def get_groups_id_mailing_text_image(timetable_id):
     connection = connection_creator()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT groups_id, mailing_text, image, video_id FROM time_table WHERE timetable_id = %s", (timetable_id,))
+    cursor.execute("SELECT groups_id, mailing_text, image, video_id FROM time_table WHERE timetable_id = %s",
+                   (timetable_id,))
     data = cursor.fetchone()
 
     groups_id_list = data['groups_id'].split(',')
@@ -299,3 +300,18 @@ def get_data_from_data_table(name):
         support = support_text['value']
 
     return support
+
+
+def get_expired_ads():
+    """
+    Returns: ((timetable_id, timetable_name, groups_id, hours, mailing_text, term, images, video_id, admin_chat_id),...)
+    """
+    connection = connection_creator()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM `time_table` WHERE term = CURDATE()")
+    expired_ads = cursor.fetchall()
+
+    connection.close()
+
+    return expired_ads
