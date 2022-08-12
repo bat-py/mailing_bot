@@ -373,6 +373,8 @@ async def hours_menu_buttons_handler(callback_query: types.CallbackQuery, state:
         state:
     Returns:
     """
+    await callback_query.bot.answer_callback_query(callback_query.id)
+
     all_data = await state.get_data()
     chosen_hours = all_data['chosen_hours']
     time = all_data['time']
