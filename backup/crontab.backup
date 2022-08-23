@@ -1,0 +1,30 @@
+0 21 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 923852 # 923852
+0 5,16 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 128171 # 128171
+0 0,19 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 328913 # 328913
+0 1,22 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 788335 # 788335
+0 0,3,8,11,16,19 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 338953 # 338953
+0 4,14,21 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 488992 # 488992
+30 18,22 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 913570 # 913570
+30 0,20 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 697201 # 697201
+30 2,6 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 191370 # 191370
+0 0,2,8,10,16,18 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 325505 # 325505
+0 7,17,19,22 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 495388 # 495388
+
+0 0,2,4,16,18,21 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 721547 # 721547
+
+
+50 14 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 983590 # 983590
+
+
+
+5 4 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 142767 # 142767
+5 10 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 142767 # 142767
+
+5 6 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 773746 # 773746
+8 13 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 773746 # 773746
+
+50 0 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 902235 # 902235
+45 5 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 902235 # 902235
+37 19 * * * cd /home/chumo/mailing_bot && /home/chumo/mailing_bot/venv/bin/python /home/chumo/mailing_bot/message_sender.py 902235 # 902235
+
+
